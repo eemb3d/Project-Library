@@ -1,0 +1,116 @@
+#!/bin/bash
+
+#######################################################
+############# MESSAGGI DI ERRORE ######################
+#######################################################
+ERR_OPZ_MANCANTE="Non è stato indicato nessuna opzione"
+ERR_OPZ_INCOMPLETA="Le opzioni indicate sono incomplete"
+ERR_OPZ_INCOMPATIBILE="Le opzioni di ricerca multipli e/o doppi"
+ERR_OPZ_NON_VALIDA="opzione non valida"
+ERR_FILE_INESISTENTE="Il file di log indicato è inesistente"
+ERR_MANCA_FILE="Manca il file di log"
+ERR_FILE_LOG="Contenuto del File non corretto"
+
+#######################################################
+########## Variabili di inizializzazione ##############
+#######################################################
+QUERY="--QUERY"
+LOAN="--LOAN"
+SALUTO="Bye."
+SOMMA=0
+OPERAZIONE=""
+TIPO_TESTO="ASCII"
+
+#######################################################
+###################### FUNZIONI #######################
+#######################################################
+
+#Verifica il numero di parametri passati
+function verifica_num_parametri(){
+	#Se le opzioni passate sono minori di due usciamo dal programma
+	if [ $# -lt '2' ]; then
+		#echo $ERR_OPZ_MANCANTE
+		exit 1
+	fi
+}
+
+####### Verifica la validità del file ######
+function verifica_file(){
+	#Verifico se il file esiste e che sia un file ASCII, in caso contrario esce
+	#Ho usato l'or per eseguire il secondo controllo quando almeno il primo è avvenuto
+	if  [ ! -f $1 ] || [ ! `file $1 | cut -f 2 -d" "` == $TIPO_TESTO ]; then
+		#echo $ERR_FILE_INESISTENTE
+		exit 1
+	fi
+}
+
+#Verifica dei parametri passati
+function verifica_parametri(){
+	for ARG in $@ ; do
+	case $ARG in
+		--query)
+			if [ "$OPERAZIONE" = "" ] ; then
+				OPERAZIONE="QUERY"
+			else
+		#		echo $ERR_OPZ_INCOMPATIBILE	
+				exit 1
+			fi		
+			;;
+		--loan)
+			if [ "$OPERAZIONE" = "" ] ; then
+				OPERAZIONE="LOAN"
+			else
+		#		echo $ERR_OPZ_INCOMPATIBILE	
+				exit 1
+			fi		
+			;;
+		*)
+			verifica_file $ARG
+			;;
+		esac	
+	done
+}
+
+#Verifica la correttezza dei numeri successivi la loan e query
+function verifica_numero(){
+	#Verifico se quello passato sia un numero e maggiore di zero
+	if [[ $1 = *[[:digit:]]* ]] && [ $1 -ge 0 ]; then 
+		SOMMA=$(( $SOMMA+$1 ))
+	else
+ 		#echo $ERR_FILE_LOG
+		exit 1
+	fi
+}
+
+###### Cuore dello script per la ricerca delle informazioni #####
+function esegui_operazione(){
+for FILE in $@ ; do	
+	case $FILE in
+		--query|--loan)	
+			;;
+		*)	
+			VAL_O="`grep '^'$OPERAZIONE'' $FILE | cut -d' ' -f2`" #ricavo i valori dal file
+			for valore in $VAL_O ; do #Verifica il valore indicate a seguito dell'operazione
+				verifica_numero $valore
+			done
+		;;
+	esac
+done
+}
+
+#Esegue la stampa del messaggio 
+function stampa_messaggio(){
+	echo "$OPERAZIONE" "$SOMMA"
+	echo $SALUTO
+}
+
+############################
+#####PASSI DELLO SCRIPT#####
+############################
+verifica_num_parametri $@
+verifica_parametri $@
+esegui_operazione $@
+stampa_messaggio
+############################
+
+
